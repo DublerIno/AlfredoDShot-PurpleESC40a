@@ -6,7 +6,7 @@
   agree, your telemetry decode and pole count are right.
 
   Wiring (ESP32-S3):
-    GPIO 4  -> ESC signal, plus a 1k pull-up resistor to 3V3   (see README)
+    GPIO 8  -> ESC signal, plus a 1k pull-up resistor to 3V3   (see README)
     GND     -> ESC ground                                       (required)
     GPIO 33 -> AS5600 SDA (Qwiic)
     GPIO 34 -> AS5600 SCL (Qwiic)
@@ -22,7 +22,7 @@
 #include <Wire.h>
 
 // ---- configuration ----------------------------------------------------------
-const int PIN_ESC = 4;
+const int PIN_ESC = 8;
 const int PIN_I2C_SDA_QWIIC = 33;
 const int PIN_I2C_SCL_QWIIC = 34;
 
@@ -87,7 +87,7 @@ void as5600CheckMagnet() {
 
 void printHelp() {
   Serial.println();
-  Serial.println("0-100 throttle %% | s stop | a auto sweep | r reset stats");
+  Serial.println("0-100 throttle % | s stop | a auto sweep | r reset stats");
   Serial.println("e/E EDT on/off | d reverse | b beep | p plotter | h help");
   Serial.println();
 }
@@ -168,6 +168,9 @@ void loop() {
   static uint32_t nextReport = millis();
   static uint32_t windowStart = micros();
   static float sweepPhase = 0;
+
+  // Drain serial every pass, not just on tick boundaries.
+  handleSerial();
 
   // ---- fixed-rate control loop ----
   if ((int32_t)(micros() - nextTick) < 0) return;
