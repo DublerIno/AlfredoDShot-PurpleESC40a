@@ -160,7 +160,10 @@ void setup() {
   esc.resetStats();
 
   printHelp();
-  Serial.println("thr%  dshotRPM  encRPM   err%   poles?  loss%   noRep fram gcr  crc  status");
+  Serial.println("echo = our own frame read back off the wire; 31 = wiring OK,");
+  Serial.println("       0 = nothing on the line, 1-30 = pull-up missing/weak.");
+  Serial.println();
+  Serial.println("thr%  dshotRPM  encRPM   err%   poles?  loss% echo  noRep fram gcr  crc  status");
 }
 
 void loop() {
@@ -231,9 +234,9 @@ void loop() {
   if (plotterMode) {
     Serial.printf("dshot_rpm:%.0f\tenc_rpm:%.0f\n", dshotRpm, encAbs);
   } else {
-    Serial.printf("%4.0f %9.0f %8.0f %6.1f %7.1f %6.2f %7lu %4lu %4lu %4lu  %s",
+    Serial.printf("%4.0f %9.0f %8.0f %6.1f %7.1f %6.2f %4u %7lu %4lu %4lu %4lu  %s",
                   throttlePct, dshotRpm, encRpm, err, impliedPoles,
-                  esc.lossPercent(), (unsigned long)st.noReply,
+                  esc.lossPercent(), esc.echoPulses(), (unsigned long)st.noReply,
                   (unsigned long)st.framing, (unsigned long)st.badGcr,
                   (unsigned long)st.badCrc, statusName(esc.status()));
     if (esc.edtSeen()) {

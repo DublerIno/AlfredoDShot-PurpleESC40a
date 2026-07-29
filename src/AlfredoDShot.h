@@ -109,6 +109,13 @@ class AlfredoDShot {
   // Must sit above the ESC's ~30 us turnaround and below your frame interval.
   void setRxIdleTimeoutUs(uint16_t us) { _rxIdleNs = us * 1000u; }
 
+  // Wiring check. The receiver shares the pin with the transmitter, so it reads
+  // our own frame back off the wire before the ESC replies. Expect 31.
+  //   31    line is driven and released cleanly - wiring is good
+  //   0     nothing on the wire: RMT not reaching the pad, or line stuck
+  //   1..30 edges are being lost - pull-up missing or too weak
+  uint16_t echoPulses() const { return _echoPulses; }
+
   uint16_t lastFrame() const { return _frame; }  // for scope/debug work
 
  private:
@@ -142,6 +149,7 @@ class AlfredoDShot {
   uint16_t _frame = 0;
   uint16_t _cmd = 0;
   uint8_t _cmdRepeat = 0;
+  uint16_t _echoPulses = 0;
 
   DShotRxStatus _status = DSHOT_RX_IDLE;
   uint32_t _erpm = 0;

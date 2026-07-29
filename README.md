@@ -85,6 +85,32 @@ then transmits the next one. Call it at a steady rate. Anything from 1 kHz to
 | `stats()` / `lossPercent()` / `resetStats()` | Link health counters. |
 | `temperatureC()` / `voltage()` / `current()` / `stress()` / `escStatus()` | EDT values. Send `DSHOT_CMD_EDT_ENABLE` first; AM32 then interleaves them with eRPM frames at a few Hz. |
 | `setRxIdleTimeoutUs(us)` | How long the receiver waits for the line to go quiet, default 60 µs. |
+| `echoPulses()` | Wiring check — see below. |
+
+## Troubleshooting
+
+The receiver shares the pin with the transmitter, so it reads our *own* frame
+back off the wire before the ESC ever replies. `echoPulses()` reports how much
+of it survived the round trip, which separates wiring faults from protocol
+faults:
+
+| `echoPulses()` | Meaning |
+|---|---|
+| **31** | The pin is driven and released cleanly. Wiring is good; any remaining problem is on the ESC side. |
+| **0** | Nothing on the wire at all. The RMT output is not reaching the pad, or the line is shorted. |
+| **1–30** | Edges are being lost. Almost always a missing or too-weak pull-up: the line can be pulled low but cannot rise fast enough. |
+
+If `echoPulses()` is 31 but every frame is `NO-REPLY`:
+
+- **Check the pull-up again.** AM32 only enters bidirectional mode when it sees
+  the line sitting *high* between frames (it wants ~100 consecutive high reads
+  while disarmed). A line that idles low keeps it in plain DShot mode forever.
+  AM32 needs no configurator setting for this — it auto-detects — but it cannot
+  detect what the wiring does not present.
+- **Check the ground.** A missing signal ground is the other way to get a line
+  the ESC cannot read.
+- Three rising beeps and nothing else is AM32's power-on chime. It means the
+  ESC powered up but never saw a valid frame, so it never armed.
 
 ## Examples
 

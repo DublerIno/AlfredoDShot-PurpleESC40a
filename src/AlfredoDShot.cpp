@@ -83,11 +83,13 @@ bool AlfredoDShot::begin(int pin, DShotMode mode, bool bidirectional,
   }
 
   if (_bidir) {
-    // Pin down the pad state regardless of driver version. The external
-    // pull-up does the real work - the internal one is far too weak for
-    // telemetry edge rates.
-    gpio_set_direction((gpio_num_t)pin, GPIO_MODE_INPUT_OUTPUT_OD);
-    gpio_set_pull_mode((gpio_num_t)pin, GPIO_PULLUP_ONLY);
+    // Only touch the pull resistor here. Do NOT call gpio_set_direction() on
+    // this pin: it routes SIG_GPIO_OUT_IDX to the pad and disconnects the RMT
+    // output signal, which silently kills transmission. Open drain and input
+    // enable are already applied by the TX channel's io_od_mode /
+    // io_loop_back flags. The external pull-up does the real work anyway - the
+    // internal one is far too weak for telemetry edge rates.
+    gpio_pullup_en((gpio_num_t)pin);
   }
 
   if (rmt_enable(_tx) != ESP_OK) {
@@ -174,10 +176,11 @@ bool AlfredoDShot::send(uint16_t value) {
       _rxArmed = false;
       _status = decode(_rxCount);
     } else {
-      // Capture never finished - drop it and start clean.
+      // Capture never finished, so the line produced no edges at all.
       rmt_disable(_rx);
       rmt_enable(_rx);
       _rxArmed = false;
+      _echoPulses = 0;
       _status = DSHOT_RX_NO_REPLY;
     }
 
@@ -243,6 +246,9 @@ DShotRxStatus AlfredoDShot::decode(size_t nsym) {
       break;
     }
   }
+  // Everything before the gap is our own frame read back off the wire - a free
+  // check that the pin is actually being driven and released. See echoPulses().
+  _echoPulses = found ? (uint16_t)(p - 1) : (uint16_t)p;
   if (!found || p >= np) return DSHOT_RX_NO_REPLY;
 
   // Rebuild the 21 transmitted bits from run lengths. The line is inverted, so
