@@ -5,9 +5,16 @@
   shaft speed measured by an AS5600 magnetic encoder on the motor. If the two
   agree, your telemetry decode and pole count are right.
 
-  Wiring (ESP32-S3):
-    GPIO 8  -> ESC signal, plus a 1k pull-up resistor to 3V3   (see README)
-    GND     -> ESC ground                                       (required)
+  Wiring (ESP32-S3), see README.md for the full diagram:
+
+                          3V3
+                           |
+                          [ ] 1k pull-up
+                           |
+    GPIO 8 ---[ 33 ]-------+------------------- ESC signal
+                           .
+    GND -------------------.------------------- ESC ground
+
     GPIO 33 -> AS5600 SDA (Qwiic)
     GPIO 34 -> AS5600 SCL (Qwiic)
 
