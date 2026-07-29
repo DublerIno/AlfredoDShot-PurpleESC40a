@@ -56,6 +56,13 @@ enum DShotRxStatus : uint8_t {
 
 class AlfredoDShot {
  public:
+  // Call first in setup(), before begin(). AM32 reboots ~0.5 s after the signal
+  // stops, and its bootloader only runs the motor firmware if it sees this line
+  // go LOW - the required pull-up beats its internal pull-down, so a booting
+  // ESP leaves the ESC stuck in bootloader, deaf until power-cycled. Holding
+  // low across that window fixes it; 2500 ms covers both AM32 timeouts.
+  static void releaseBootloader(int pin, uint16_t holdMs = 2500);
+
   // pin        : ESC signal pin (needs an external pull-up to 3V3, see README)
   // motorPoles : magnet count, used to convert eRPM to shaft RPM (12N14P = 14)
   bool begin(int pin, DShotMode mode = DSHOT600, bool bidirectional = true,
@@ -70,8 +77,13 @@ class AlfredoDShot {
   bool send(uint16_t value);
   bool sendThrottle(float throttle);  // 0.0 .. 1.0 -> 48..2047
 
+  // AM32 needs ~1 s of unbroken zero throttle before it arms, and any non-zero
+  // value restarts its timer. send() quietly forces zero until that has passed,
+  // so just call sendThrottle() from your first loop - no arming loop needed.
+  bool isArmed() const { return _armed; }
+
   // Queue a special command. It replaces the throttle for the next `repeat`
-  // frames. Send it with the motor stopped.
+  // frames. Held back until armed, since AM32 ignores commands before that.
   void command(uint16_t cmd, uint8_t repeat = 6);
   bool commandPending() const { return _cmdRepeat > 0; }
 
@@ -151,6 +163,8 @@ class AlfredoDShot {
   uint16_t _cmd = 0;
   uint8_t _cmdRepeat = 0;
   uint16_t _echoPulses = 0;
+  int64_t _beginUs = 0;
+  bool _armed = false;
 
   DShotRxStatus _status = DSHOT_RX_IDLE;
   uint32_t _erpm = 0;

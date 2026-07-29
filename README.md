@@ -110,6 +110,18 @@ faults:
 | **0** | Nothing on the wire at all. The RMT output is not reaching the pad, or the line is shorted. |
 | **1–30** | Edges are being lost. Almost always a missing or too-weak pull-up: the line can be pulled low but cannot rise fast enough. |
 
+### Dead after an ESP reset (NO-REPLY, throttle ignored)
+
+The ESC is parked in its bootloader. AM32 reboots ~0.5 s after the signal stops,
+and its bootloader only runs the motor firmware if it sees the line go **low** —
+but the pull-up beats its internal pull-down, so a booting ESP leaves it stuck.
+
+Fix: `AlfredoDShot::releaseBootloader(pin)` as the first line of `setup()`, as
+both DShot examples do. `AM32_ConfiguratorLink` needs the opposite — don't call
+it there.
+
+### No telemetry at all
+
 If `echoPulses()` is 31 but every frame is `NO-REPLY`:
 
 - **Check the pull-up again.** AM32 only enters bidirectional mode when it sees

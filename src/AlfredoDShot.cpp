@@ -18,6 +18,9 @@ static constexpr size_t RMT_MEM = 48;
 
 static const uint32_t kBitrate[] = {150000, 300000, 600000, 1200000};
 
+// AM32 wants 1.0 s of zeros, plus a little for it to detect the protocol first.
+static constexpr int64_t ARM_HOLD_US = 1200000;
+
 // Bidirectional-DShot GCR: 5-bit quintet back to its nibble, 0xFF = invalid.
 static const uint8_t kGcrToNibble[32] = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,  // 0x00-0x07
@@ -25,6 +28,19 @@ static const uint8_t kGcrToNibble[32] = {
     0xFF, 0xFF, 0x02, 0x03, 0xFF, 0x05, 0x06, 0x07,  // 0x10-0x17
     0xFF, 0x00, 0x08, 0x01, 0xFF, 0x04, 0x0C, 0xFF,  // 0x18-0x1F
 };
+
+void AlfredoDShot::releaseBootloader(int pin, uint16_t holdMs) {
+  // Open drain so we only pull down, and via the IDF rather than pinMode() so
+  // the Arduino peripheral manager does not claim the pad ahead of the RMT
+  // driver in begin().
+  gpio_config_t cfg = {};
+  cfg.pin_bit_mask = 1ULL << pin;
+  cfg.mode = GPIO_MODE_OUTPUT_OD;
+  cfg.intr_type = GPIO_INTR_DISABLE;
+  gpio_config(&cfg);
+  gpio_set_level((gpio_num_t)pin, 0);
+  delay(holdMs);
+}
 
 bool AlfredoDShot::begin(int pin, DShotMode mode, bool bidirectional,
                          uint8_t motorPoles) {
@@ -103,6 +119,8 @@ bool AlfredoDShot::begin(int pin, DShotMode mode, bool bidirectional,
 
   // Send a stop frame so the line settles at its idle level (high when
   // bidirectional) instead of whatever the RMT channel powered up with.
+  _beginUs = esp_timer_get_time();
+  _armed = false;
   send(0);
   return true;
 }
@@ -195,9 +213,17 @@ bool AlfredoDShot::send(uint16_t value) {
     fresh = (_status == DSHOT_RX_OK);
   }
 
-  if (_cmdRepeat) {
-    value = _cmd;
-    _cmdRepeat--;
+  // AM32 arms only after ~1 s of unbroken zeros (main.c: armed_timeout_count),
+  // and any non-zero frame restarts its timer. Hold everything at zero until
+  // then - including commands, which it also ignores while disarmed.
+  if (!_armed && esp_timer_get_time() - _beginUs < ARM_HOLD_US) {
+    value = 0;
+  } else {
+    _armed = true;
+    if (_cmdRepeat) {
+      value = _cmd;
+      _cmdRepeat--;
+    }
   }
 
   // Arm the receiver before transmitting. The capture then covers our own

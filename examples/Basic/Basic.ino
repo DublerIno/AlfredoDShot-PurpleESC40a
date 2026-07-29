@@ -13,15 +13,10 @@ const uint8_t MOTOR_POLES = 14;
 AlfredoDShot esc;
 
 void setup() {
+  AlfredoDShot::releaseBootloader(PIN_ESC);  // must be first, see AlfredoDShot.h
+
   Serial.begin(115200);
   esc.begin(PIN_ESC, DSHOT600, true, MOTOR_POLES);
-
-  // Arm: two seconds of zero throttle at 1 kHz.
-  for (int i = 0; i < 2000; i++) {
-    esc.send(0);
-    delayMicroseconds(1000);
-  }
-  esc.resetStats();
 }
 
 void loop() {

@@ -34,9 +34,16 @@
     2. Click Connect in the am32.ca configurator and pick this port.
     3. Now apply the ESC battery.
 
-  The AM32 bootloader only listens for a moment at power-up, so the ESC has to
-  come up after the configurator is already listening. If it fails, drop the
-  battery and repeat from step 2 - the order is what matters.
+  Why the order matters: AM32's bootloader samples this line for ~45 ms at
+  power-up and jumps to the motor firmware the moment it reads LOW. The pull-up
+  and an idle UART hold it HIGH, so it waits for the configurator instead.
+  Never drive this pin low before the ESC powers up - the opposite of what the
+  DShot side needs, so do NOT call AlfredoDShot::releaseBootloader() here.
+
+  A failed connect usually means the configurator was mid-handshake during
+  those 45 ms and the ESC jumped to the motor firmware; drop the battery and
+  retry. An ESC already stuck in its bootloader (what happens if you reset the
+  ESP while a DShot sketch runs) can be connected to with no power cycle.
 */
 
 #include <HardwareSerial.h>

@@ -146,8 +146,9 @@ const char *statusName(DShotRxStatus s) {
 }
 
 void setup() {
+  AlfredoDShot::releaseBootloader(PIN_ESC);  // must be first, see AlfredoDShot.h
+
   Serial.begin(115200);
-  delay(300);
   Serial.println("\nAlfredoDShot - AS5600 telemetry check");
 
   Wire.begin(PIN_I2C_SDA_QWIIC, PIN_I2C_SCL_QWIIC, 400000);
@@ -155,16 +156,8 @@ void setup() {
 
   if (!esc.begin(PIN_ESC, DSHOT_RATE, true, MOTOR_POLES)) {
     Serial.println("esc.begin() failed - out of RMT channels?");
-    while (true) delay(1000);
+    while (true) delay(100);
   }
-
-  // Hold zero throttle so the ESC arms.
-  Serial.println("arming...");
-  for (int i = 0; i < 2000; i++) {
-    esc.send(0);
-    delayMicroseconds(LOOP_US);
-  }
-  esc.resetStats();
 
   printHelp();
   Serial.println("echo = our own frame read back off the wire; 31 = wiring OK,");
