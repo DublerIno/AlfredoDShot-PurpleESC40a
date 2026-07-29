@@ -247,7 +247,7 @@ void loop() {
                   (unsigned long)st.framing, (unsigned long)st.badGcr,
                   (unsigned long)st.badCrc, statusName(esc.status()));
     if (esc.edtSeen()) {
-      Serial.printf("  | %.0fC %.2fV %.0fA", esc.temperatureC(), esc.voltage(),
+      Serial.printf("  | %.0fC %.2fV %.2fA", esc.temperatureC(), esc.voltage(),
                     esc.current());
     }
     if (encErrors) Serial.printf("  | i2c_err %lu", (unsigned long)encErrors);

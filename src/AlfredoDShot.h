@@ -86,9 +86,10 @@ class AlfredoDShot {
   // ---- Extended DShot Telemetry (AM32: send DSHOT_CMD_EDT_ENABLE first) ----
   // AM32 interleaves these with eRPM frames, so they update at a few Hz.
   bool edtSeen() const { return _edtSeen; }
-  float temperatureC() const { return _edtTemp; }      // NAN until received
-  float voltage() const { return _edtVolts; }          // NAN until received
-  float current() const { return _edtAmps; }           // NAN until received
+  float temperatureC() const { return _edtTemp; }  // NAN until received, ~5 Hz
+  float voltage() const { return _edtVolts; }      // NAN until received, ~5 Hz
+  float current() const { return _edtAmps; }       // NAN until received, ~25 Hz
+  // AM32 never emits these two, so they stay 0. Kept for other EDT firmware.
   uint8_t stress() const { return _edtStress; }
   uint8_t escStatus() const { return _edtStatus; }
 
