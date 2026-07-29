@@ -1,0 +1,14 @@
+name: Arduino-lint
+
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: arduino/arduino-lint-action@v3
+        with:
+          # "submit" is the stricter ruleset the Library Manager runs on new
+          # entries. Once this library is accepted, "update" is the right level.
+          library-manager: submit
+          compliance: strict

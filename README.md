@@ -6,7 +6,6 @@ Bidirectional DShot for the ESP32, built on the RMT peripheral and aimed at
 - One GPIO per ESC — TX and RX share the pad, like a 1-Wire bus.
 - eRPM telemetry decoded from the GCR reply, plus Extended DShot Telemetry.
 - DShot150 / 300 / 600 / 1200, inverted frame and inverted CRC.
-- No tasks, no timers, no DMA. Two files.
 
 ## Wiring
 
@@ -63,8 +62,8 @@ supports 4 bidirectional ESCs — the whole GPIO 4–7 block.
 AlfredoDShot esc;
 
 void setup() {
+  AlfredoDShot::releaseBootloader(4);   // must be first, see Troubleshooting
   esc.begin(4, DSHOT600, /*bidirectional=*/true, /*motorPoles=*/14);
-  for (int i = 0; i < 2000; i++) { esc.send(0); delayMicroseconds(1000); }  // arm
 }
 
 void loop() {
@@ -82,6 +81,12 @@ void loop() {
 then transmits the next one. Call it at a steady rate. Anything from 1 kHz to
 ~7 kHz works at DShot600.
 
+There is no arming loop to write. AM32 will not arm until it has seen ~1 s of
+unbroken zero throttle, and any non-zero frame restarts its timer — so `send()`
+quietly forces zero for the first 1.2 s after `begin()` and lets your throttle
+through after that. It does not block, so several ESCs arm in parallel. Check
+`isArmed()` if you want to show the state.
+
 ## API
 
 | | |
@@ -89,6 +94,8 @@ then transmits the next one. Call it at a steady rate. Anything from 1 kHz to
 | `begin(pin, mode, bidirectional, motorPoles)` | `mode` is `DSHOT150/300/600/1200`. `motorPoles` is the magnet count — 14 for a typical 12N14P outrunner. |
 | `send(value)` | `0` = stop, `48..2047` = throttle. Returns `true` if telemetry decoded. |
 | `sendThrottle(0.0..1.0)` | Same, scaled. |
+| `isArmed()` | False during the 1.2 s zero-throttle window after `begin()`, true once throttle and commands are being passed through. |
+| `releaseBootloader(pin)` | Call before `begin()`. Holds the line low so a rebooting ESC leaves its bootloader. See Troubleshooting. |
 | `command(cmd, repeat = 6)` | Queue a special command. AM32 needs 6 consecutive frames for most of them; beacons fire immediately. Send with the motor stopped. |
 | `rpm()` / `erpm()` / `periodUs()` | Shaft RPM, electrical RPM, raw commutation period. |
 | `status()` | `DSHOT_RX_OK`, `NO_REPLY`, `FRAMING`, `BAD_GCR`, `BAD_CRC`, `IDLE`. |
