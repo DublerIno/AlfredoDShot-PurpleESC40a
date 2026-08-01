@@ -19,9 +19,9 @@ Use **one** GPIO per ESC. Any free GPIO works — on the ESP32-S3, 4, 5, 6, 7 an
                               |
                              [ ] 1 kΩ  pull-up
                               |
-  GPIO 8  -----[ 33 Ω ]-------+--------------------------- signal
-               series         |
-                              |
+  GPIO 8  -----[ 100 Ω ]-------+------------------------ signal
+               series
+
   GND  ------------------------------------------------- ground
 
                                      ESC runs from its own battery
@@ -34,7 +34,7 @@ holds the bus itself rather than just the ESP's pad.
 | | |
 |---|---|
 | **1 kΩ pull-up to 3V3** | **Required.** The ESP drives the line open-drain so the ESC can pull it low to answer. The pull-up provides the rising edge. 1 kΩ–2.2 kΩ is the useful range; the ESP's internal ~45 kΩ pull-up is *far* too slow (a DShot600 telemetry bit is only 1.33 µs) and telemetry will not decode without an external one. |
-| **33 Ω series resistor** | Damps ringing on the signal wire and limits current if both ends ever drive at once. Put it at the ESP end. 33–100 Ω all work; it costs nothing at these edge rates and it is cheap insurance on a robot. |
+| **33 Ω series resistor** | Damps ringing on the signal wire and limits current if both ends ever drive at once. Put it at the ESP end. 33–150 Ω all work; it costs nothing at these edge rates and it is cheap insurance on a robot. |
 | **Shared ground** | Required, and it must be a real signal ground — run a dedicated ground wire from the ESC to the ESP, not through the motor power return. |
 | **Power** | Do not feed the ESC's BEC into the ESP's 3V3 rail unless you know it is 3.3 V. Most AM32 ESCs have no BEC at all. |
 
