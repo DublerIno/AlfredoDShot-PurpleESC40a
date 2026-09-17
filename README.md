@@ -7,6 +7,37 @@ Bidirectional DShot for the ESP32, built on the RMT peripheral and aimed at
 - eRPM telemetry decoded from the GCR reply, plus Extended DShot Telemetry.
 - DShot150 / 300 / 600 / 1200, inverted frame and inverted CRC.
 
+## Tested hardware: FreelyRC / AM32 Purple 40A ESC
+
+This fork was tested with the Purple 40A ESC supplied with AM32 firmware
+`AM32_FREELYRC_V2_F421_2.21.hex`. The firmware identifies the target as
+`FREELYRC_V2_F421` running on an Artery `AT32F421K8U7` (Cortex-M4). The AM32
+target defines ADC inputs for both current (ADC channel 6 / pin 6) and battery
+voltage (ADC channel 3 / pin 3), and includes serial telemetry support.
+
+### Wiring lessons
+
+Bidirectional DShot uses the same signal wire in both directions. This ESC has
+an approximately **1 kΩ series resistor already fitted** on its signal path.
+An additional 1 kΩ pull-up loaded the ESC telemetry output; the reply low level
+was measured around 1.8 V and was not a reliable logic low. A weaker external
+pull-up (2.2 kΩ to 4.7 kΩ, or higher if the edge rise time permits) produced
+valid replies. Use a common ground and measure at the bus/ESP32 side of the
+resistor. Keep the signal idle high and verify reply lows are below 0.8 V.
+
+### Telemetry observed
+
+With the corrected pull-up, AlfredoDShot decoded bidirectional eRPM reliably on
+the left ESC (GPIO2, DShot600): complete 31-pulse command echoes, valid RPM
+replies, and approximately 0.3% loss during the steady-state test. The
+standalone test sketch in `pio_test/` retries AM32 EDT command 13 while stopped.
+
+AM32 v2.21 documents EDT types for temperature (`0x02`), voltage (`0x04`,
+0.25 V steps), and current (`0x06`). The ESC returned valid eRPM but did not
+return EDT voltage/current frames in our tests, so EDT support on this exact
+Purple 40A firmware/build remains unconfirmed. Analog scaling should be
+checked against a multimeter and current meter before using the values.
+
 ## Wiring
 
 Use **one** GPIO per ESC. Any free GPIO works — on the ESP32-S3, 4, 5, 6, 7 and
