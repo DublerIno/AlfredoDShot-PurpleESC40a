@@ -66,3 +66,24 @@ unconfirmed.
 ![res](images/wrong_resistor.png)
 ![escpinout](images/esc.png)
 ![readings](images/readings.png)
+
+## Difference from the first FELBattleBot implementation
+
+This is the same bidirectional-DShot protocol, not a different ESC protocol:
+the command is sent on the signal wire, the line is released, and AM32 returns
+a 21-bit inverted GCR response with an inverted checksum. The important
+difference is the ESP32 implementation and test conditions.
+
+The first FELBattleBot code used the ESP32 Arduino 2.x / legacy RMT API, a
+manually managed RX ring buffer, and a stricter parser that expected exactly 31
+command-echo runs followed by a long high gap. AlfredoDShot uses Arduino-ESP32
+3.x / ESP-IDF 5 RMT channels, arms RX before every TX frame on the shared
+open-drain pin, finds the turnaround gap dynamically, and decodes the reply at
+the selected DShot rate. The test also runs a steady 1 kHz loop at DShot600;
+the earlier controller used DShot300 and a 200 Hz motor loop. DShot600's reply
+bits are therefore about 1.33 µs, while DShot300's are about 2.67 µs.
+
+The electrical change was equally important: the ESC already has an
+approximately 1 kΩ series resistor, so the original 1 kΩ external pull-up made
+the ESC reply lows too high. A weaker pull-up produced clean logic levels and
+allowed the same AM32 bidirectional protocol to decode reliably.
