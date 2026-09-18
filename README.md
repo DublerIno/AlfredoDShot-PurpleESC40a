@@ -60,3 +60,9 @@ then resumes low throttle.
 The ESC returned valid eRPM, but no EDT voltage/current frames were observed in
 this test. EDT support on this exact Purple 40A firmware build therefore remains
 unconfirmed.
+
+##images
+
+![res](images/wrong_resistor.png)
+![escpinout](images/esc.png)
+![readings](images/readings.png)
